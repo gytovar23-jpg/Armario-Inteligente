@@ -1,10 +1,10 @@
 #pragma once
-// Reed e microswitches: borda na ISR, debounce com esp_timer, decisão na task.
+// Microswitches dos slots: borda na ISR, debounce com esp_timer, decisão na task.
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <stdint.h>
 
-enum class SensorId : uint8_t { Door = 0, Slot1 = 1, Slot2 = 2, Count = 3 };
+enum class SensorId : uint8_t { Slot1 = 0, Slot2 = 1, Count = 2 };
 
 struct SensorMsg {
   enum Kind : uint8_t {
@@ -16,7 +16,7 @@ struct SensorMsg {
 
 struct SensorChange {
   SensorId id;
-  bool active;  // Door: aberta. Slot: ocupado (microswitch pressionado).
+  bool active;  // Slot ocupado (microswitch pressionado).
 };
 
 namespace sensors {
@@ -31,9 +31,9 @@ uint32_t edgeCount(SensorId id); // Total de interrupções (evidência do debou
 // light sleep, quando a ISR pode não ter sido atendida.
 void resync();
 
-// O wake-up do light sleep reprograma a interrupção do reed; estas duas a
-// suspendem antes de dormir e a devolvem ao modo CHANGE ao acordar.
-void suspendDoorInterrupt();
-void resumeDoorInterrupt();
+// O wake-up do light sleep reprograma as interrupções dos slots; estas duas as
+// suspendem antes de dormir e as devolvem ao modo CHANGE ao acordar.
+void suspendInterrupts();
+void resumeInterrupts();
 
 }  // namespace sensors

@@ -26,7 +26,6 @@ FsmConfig toFsmConfig(const Settings& s) {
   FsmConfig c;
   c.unlockMs = s.unlockSec * 1000UL;
   c.relockMs = s.relockDelaySec * 1000UL;
-  c.maxOpenMs = s.maxDoorOpenSec * 1000UL;
   for (uint8_t i = 0; i < SLOT_COUNT; i++) c.maintenance[i] = s.slotMaintenance[i];
   return c;
 }
@@ -119,7 +118,7 @@ void commitReturn(const FsmAction& a) {
 void noteViolation(const FsmAction& a) {
   if (a.occupied) closeLoan(a.slot);  // Notebook voltou sem sessão: o empréstimo acabou.
   recordEvent(EventType::Violation, a.slot, USER_NONE, "", "", 0);
-  LOG_ERROR("access", "Violacao: slot %u mudou com a porta fechada", a.slot + 1);
+  LOG_ERROR("access", "Violacao: slot %u mudou com o armario trancado", a.slot + 1);
 }
 
 void handleNote(const FsmAction& a) {
@@ -127,18 +126,8 @@ void handleNote(const FsmAction& a) {
     case FsmNote::SessionStarted:
       LOG_INFO("access", "Sessao iniciada: %s", sessionName);
       break;
-    case FsmNote::UnlockTimedOut:
-      LOG_WARN("access", "Porta nao aberta a tempo; retrancado");
-      break;
-    case FsmNote::DoorLeftOpen:
-      LOG_WARN("access", "Porta aberta alem do limite");
-      break;
-    case FsmNote::Intrusion:
-      recordEvent(EventType::Intrusion, 0xFF, USER_NONE, "", "", 0);
-      LOG_ERROR("access", "Porta aberta sem autorizacao");
-      break;
-    case FsmNote::BootWithDoorOpen:
-      LOG_WARN("access", "Inicializou com a porta aberta");
+    case FsmNote::SessionEnded:
+      LOG_INFO("access", "Sessao encerrada; trancado");
       break;
     case FsmNote::EnrollTimedOut:
       LOG_INFO("access", "Cadastro expirou sem cartao");
@@ -207,12 +196,11 @@ void publish() {
   shared::lock();
   LockerSnapshot& s = shared::raw();
   const bool changed = s.state != state || s.alarm != fsm.alarmReason() || s.alarmSilenced != fsm.alarmSilenced() ||
-                       s.doorOpen != fsm.doorOpen() || s.locked != fsm.locked() ||
+                       s.locked != fsm.locked() ||
                        s.slotOccupied[0] != fsm.occupied(0) || s.slotOccupied[1] != fsm.occupied(1);
   s.state = state;
   s.alarm = fsm.alarmReason();
   s.alarmSilenced = fsm.alarmSilenced();
-  s.doorOpen = fsm.doorOpen();
   s.locked = fsm.locked();
   for (uint8_t i = 0; i < SLOT_COUNT; i++) s.slotOccupied[i] = fsm.occupied(i);
   strlcpy(s.sessionUser, state == LockerState::Idle ? "" : sessionName, sizeof(s.sessionUser));
@@ -266,13 +254,8 @@ void onSensor(const SensorMsg& msg) {
   sensors::process(msg, &change, &changed);
   if (!changed) return;
 
-  FsmEvent ev{FsmInput::Tick, millis()};
-  if (change.id == SensorId::Door) {
-    ev.type = change.active ? FsmInput::DoorOpened : FsmInput::DoorClosed;
-  } else {
-    ev.type = change.active ? FsmInput::SlotOccupied : FsmInput::SlotFreed;
-    ev.slot = change.id == SensorId::Slot1 ? 0 : 1;
-  }
+  FsmEvent ev{change.active ? FsmInput::SlotOccupied : FsmInput::SlotFreed, millis()};
+  ev.slot = change.id == SensorId::Slot1 ? 0 : 1;
   step(ev);
 }
 
@@ -334,8 +317,7 @@ void restoreLoans() {
 }
 }  // namespace
 
-void taskAccess(void* arg) {
-  const bool wokenByDoor = *static_cast<bool*>(arg);
+void taskAccess(void*) {
   tasks::watchThisTask();
 
   if (!sensors::begin(shared::sensorQueue)) LOG_ERROR("access", "Falha ao iniciar sensores");
@@ -343,7 +325,7 @@ void taskAccess(void* arg) {
   restoreLoans();
 
   const bool occupied[SLOT_COUNT] = {sensors::active(SensorId::Slot1), sensors::active(SensorId::Slot2)};
-  fsm.begin(millis(), sensors::active(SensorId::Door), occupied, wokenByDoor, actions);
+  fsm.begin(millis(), occupied, actions);
   execute();
   publish();
 

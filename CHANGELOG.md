@@ -2,6 +2,13 @@
 
 Segue [versionamento semântico](https://semver.org/lang/pt-BR/). A versão 1.0.0 fica reservada para depois da validação em hardware.
 
+## 0.10.0 — 2026-11-09
+
+- Pinagem nova, validada em bancada: quase tudo do lado do 3V3 do DevKit (detalhes no README)
+- Sem sensor de porta: a sessão é uma janela de tempo depois do cartão e tranca 3 s após a última mudança de slot
+- Light Sleep acorda por mudança de slot; Deep Sleep só por timer
+- Configurações: sai "porta aberta, máximo"; o esquema muda e as configurações salvas voltam ao padrão na primeira inicialização
+
 ## 0.9.0 — 2026-11-03
 
 - Dashboard simplificado: notebooks, quem retirou, horários e devoluções ao vivo

@@ -8,18 +8,15 @@
 
 namespace {
 constexpr size_t COUNT = static_cast<size_t>(SensorId::Count);
-const uint8_t PINS[COUNT] = {PIN_REED_DOOR, PIN_SLOT_1, PIN_SLOT_2};
+const uint8_t PINS[COUNT] = {PIN_SLOT_1, PIN_SLOT_2};
 
 QueueHandle_t sensorQueue;
 esp_timer_handle_t debounceTimers[COUNT];
 bool stable[COUNT];
 volatile uint32_t edges[COUNT];
 
-// Com pull-up, reed fechado (ímã perto) = LOW; microswitch pressionado = LOW.
-bool isActive(SensorId id) {
-  const bool level = digitalRead(PINS[static_cast<size_t>(id)]);
-  return id == SensorId::Door ? level : !level;
-}
+// Com pull-up, microswitch pressionado = LOW.
+bool isActive(SensorId id) { return !digitalRead(PINS[static_cast<size_t>(id)]); }
 
 // ISR mínima: conta, enfileira e sai. Nada de lógica: o tempo aqui é latência
 // imposta a todas as outras interrupções do core.
@@ -71,10 +68,12 @@ void process(const SensorMsg& msg, SensorChange* out, bool* changed) {
   *changed = true;
 }
 
-void suspendDoorInterrupt() { detachInterrupt(PIN_REED_DOOR); }
+void suspendInterrupts() {
+  for (size_t i = 0; i < COUNT; i++) detachInterrupt(PINS[i]);
+}
 
-void resumeDoorInterrupt() {
-  attachInterruptArg(PIN_REED_DOOR, onEdge, reinterpret_cast<void*>(static_cast<uintptr_t>(SensorId::Door)), CHANGE);
+void resumeInterrupts() {
+  for (size_t i = 0; i < COUNT; i++) attachInterruptArg(PINS[i], onEdge, reinterpret_cast<void*>(i), CHANGE);
 }
 
 bool active(SensorId id) { return stable[static_cast<size_t>(id)]; }

@@ -23,10 +23,6 @@ void buildTitle(DisplayModel& m) {
 
 const char* alarmText(AlarmReason r) {
   switch (r) {
-    case AlarmReason::DoorTimeout:
-      return "Feche a porta";
-    case AlarmReason::Intrusion:
-      return "Porta violada";
     case AlarmReason::Violation:
       return "Slot violado";
     case AlarmReason::None:
@@ -46,16 +42,9 @@ void buildBody(const LockerSnapshot& s, DisplayModel& m) {
       snprintf(m.line2, sizeof(m.line2), "S1:%s S2:%s", s.slotOccupied[0] ? "ocupado" : "livre",
                s.slotOccupied[1] ? "ocupado" : "livre");
       break;
-    case LockerState::Authorized:
-      strlcpy(m.line1, s.sessionUser, sizeof(m.line1));
-      strlcpy(m.line2, "Abra a porta", sizeof(m.line2));
-      break;
-    case LockerState::DoorOpen:
+    case LockerState::Open:
       strlcpy(m.line1, s.sessionUser, sizeof(m.line1));
       strlcpy(m.line2, "Retire ou devolva", sizeof(m.line2));
-      break;
-    case LockerState::Closing:
-      strlcpy(m.line1, "Trancando...", sizeof(m.line1));
       break;
     case LockerState::Alarm:
       strlcpy(m.line1, s.alarmSilenced ? "Alarme silenciado" : "ALARME", sizeof(m.line1));

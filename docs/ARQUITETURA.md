@@ -52,29 +52,27 @@ flowchart LR
 
 Pura (`src/core/state_machine.*`): recebe eventos e tempo, devolve ações. Por isso é testada no PC.
 
+O armário não tem sensor de porta. A sessão é uma janela de tempo aberta pelo cartão: a tranca solta, os slots podem mudar e, quando a janela acaba, o saldo é gravado e a tranca volta.
+
 ```mermaid
 stateDiagram-v2
   [*] --> IDLE
-  IDLE --> AUTHORIZED: cartão autorizado
-  AUTHORIZED --> IDLE: timeout sem abrir
-  AUTHORIZED --> DOOR_OPEN: porta abriu
-  DOOR_OPEN --> CLOSING: porta fechou
-  CLOSING --> DOOR_OPEN: reabriu
-  CLOSING --> IDLE: atraso cumprido, grava e tranca
-  CLOSING --> AUTHORIZED: próximo cartão
-  DOOR_OPEN --> ALARM: aberta além do limite
-  ALARM --> CLOSING: porta fechou (timeout)
-  IDLE --> ALARM: porta ou slot sem autorização
-  ALARM --> IDLE: silenciado e porta fechada
+  IDLE --> OPEN: cartão autorizado ou destrancar pela web
+  OPEN --> OPEN: slot mudou (prazo = atraso para trancar)
+  OPEN --> OPEN: cartão de novo (prazo reinicia; outro usuário grava o saldo do anterior)
+  OPEN --> IDLE: prazo acabou ou trancar pela web; grava e tranca
+  IDLE --> ALARM: slot mudou trancado
+  ALARM --> IDLE: silenciado (web ou cartão admin)
   IDLE --> ENROLL: cadastro pela web
   ENROLL --> IDLE: cartão, cancelamento ou timeout
 ```
 
 Decisões a defender:
 - **Grava o saldo da sessão**, não cada transição: tirar e repor o mesmo notebook não é empréstimo.
-- **Slot mudando em CLOSING não é violação:** o microswitch pode assentar logo após o reed fechar.
-- **Reset com porta aberta não gera alarme**, mas acordar do deep sleep pela porta gera: dormindo, a tranca estava fechada.
-- **Crédito do empréstimo vem do id gravado na ação:** o próximo cartão em CLOSING não herda a retirada do anterior.
+- **Cada mudança de slot redefine o prazo para o atraso de trancar** (3 s por padrão): quem já retirou não espera a janela inteira, e quem continua mexendo não é trancado no meio.
+- **Sem sensor de porta, o reset sempre começa trancado:** não há como saber se havia alguém mexendo no armário.
+- **Crédito do empréstimo vem do id gravado na ação:** o próximo cartão durante a sessão grava o saldo do anterior antes de assumir.
+- **O que se perde sem a porta:** alarme de porta esquecida aberta, de arrombamento e o acordar pela porta. Uma porta forçada só é detectada se um slot mudar.
 
 ## Interrupções
 
@@ -97,10 +95,10 @@ O timer de hardware (`timerBegin`) notifica a `taskSampler` no período configur
 | Normal | Padrão | — | Tudo |
 | Modem sleep | Configuração | — | Conexão Wi-Fi |
 | CPU 80/160 MHz | Configuração ou econômico automático | — | Tudo |
-| Light Sleep | Botão web | Timer, reed | RAM e tasks; Wi-Fi desligado |
-| Deep Sleep | Botão web | Timer, reed (`ext0`) | RTC; reinicia ao acordar |
+| Light Sleep | Botão web | Timer, mudança de slot | RAM e tasks; Wi-Fi desligado |
+| Deep Sleep | Botão web | Timer | RTC; reinicia ao acordar |
 
-Antes de dormir: recusa se houver sessão ou porta aberta, aguarda a resposta HTTP, grava o log com flush, corta o sinal do servo e desliga o rádio. No deep sleep, o pull-up do reed passa a ser RTC e o GPIO do buzzer recebe pull-down, evitando polarizar o BC547. Comparar consumos exige medir em bancada.
+Antes de dormir: recusa se houver sessão aberta, aguarda a resposta HTTP, grava o log com flush, corta o sinal do servo e desliga o rádio. Os slots (GPIO 16/17) não são RTC GPIO, então no deep sleep só o timer acorda, e um slot mexido durante esse sono não vira violação. O GPIO do buzzer recebe pull-down RTC, evitando polarizar o BC547. Comparar consumos exige medir em bancada.
 
 ## Web
 

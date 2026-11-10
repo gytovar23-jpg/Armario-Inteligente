@@ -8,19 +8,19 @@
 #define MAX_USERS 64  // ~100 B por usuário em RAM: 6,4 KB de um heap sem PSRAM.
 
 // ---- Segundo atuador (pendência de hardware) --------------------------------
-// 1 = relé de iluminação/cooler interno ligado enquanto a porta estiver aberta.
+// 1 = relé de iluminação/cooler interno ligado durante a sessão (tranca solta).
 #define AUX_ACTUATOR_ENABLED 1
 #define AUX_ACTIVE_LEVEL HIGH
 
 // ---- Temporização ----------------------------------------------------------
-#define DEBOUNCE_MS 30           // Microswitch e reed quicam por até ~10 ms.
+#define DEBOUNCE_MS 30           // Microswitch quica por até ~10 ms.
 #define NFC_REPEAT_SUPPRESS_MS 2000  // Cartão parado no leitor não repete leitura.
 #define NFC_READ_TIMEOUT_MS 60   // Curto para não prender a task no RF.
 #define ENROLL_TIMEOUT_MS 30000
 #define WDT_TIMEOUT_S 8          // Acima do pior caso de escrita em flash + OLED.
 
 // ---- Filas -----------------------------------------------------------------
-// Dimensionadas para o pico: uma rajada de quicadas nos 3 sensores não pode
+// Dimensionadas para o pico: uma rajada de quicadas nos 2 slots não pode
 // perder bordas; UID e comandos chegam em ritmo humano.
 #define Q_SENSOR_DEPTH 24
 #define Q_UID_DEPTH 4

@@ -5,9 +5,27 @@
   "disciplina": "Performance em Sistemas Ciberfísicos",
   "professor": "Prof. Fábio Bettio",
   "periodo": "2026/2",
-  "github": "PREENCHER: link do repositório",
+  "github": "https://github.com/gytovar23-jpg/Armario-Inteligente",
   "integrantes": [
-    { "nome": "PREENCHER: nome completo", "email": "PREENCHER: e-mail" },
-    { "nome": "PREENCHER: nome completo", "email": "PREENCHER: e-mail" }
+    {
+      "nome": "Felipe Gegembauer",
+      "email": "felipe.gegembauer@pucpr.edu.br"
+    },
+    {
+      "nome": "Gyordano Tovar",
+      "email": "gyordano.tovar@pucpr.edu.br"
+    },
+    {
+      "nome": "Joao Campos",
+      "email": "joao.campos@pucpr.edu.br"
+    },
+    {
+      "nome": "Kawanne Czarnik",
+      "email": "kawanne.czarnik@pucpr.edu.br"
+    },
+    {
+      "nome": "Thomas Cruz",
+      "email": "thomas.cruz@pucpr.edu.br"
+    }
   ]
 }

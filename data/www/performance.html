@@ -18,7 +18,7 @@
     <section class="card"><h2>Sensores: último valor</h2><dl id="sensors"></dl></section>
     <section class="card wide"><h2>Tempo de execução das funções principais</h2><div class="scroll"><table><thead><tr><th>Função</th><th class="num">Média (µs)</th><th class="num">Mín</th><th class="num">Máx</th><th class="num">Última</th><th class="num">Chamadas</th></tr></thead><tbody id="prof"></tbody></table></div></section>
     <section class="card wide"><h2 id="tasksTitle">Tasks</h2><div class="scroll"><table><thead><tr><th>Nome</th><th class="num">Core</th><th class="num">Prior.</th><th>Estado</th><th class="num">Pilha livre (bytes)</th><th class="num">CPU %</th></tr></thead><tbody id="tasks"></tbody></table></div></section>
-    <section class="card"><h2>Sensores: porta e slots, 24 h (% do minuto)</h2><div class="chart"><canvas id="cSens"></canvas></div></section>
+    <section class="card"><h2>Tranca e slots, 24 h (% do minuto)</h2><div class="chart"><canvas id="cSens"></canvas></div></section>
     <section class="card"><h2>Leituras NFC, 24 h</h2><div class="chart"><canvas id="cNfc"></canvas></div></section>
     <section class="card"><h2>CPU, 24 h (%)</h2><div class="chart"><canvas id="cCpu24"></canvas></div></section>
     <section class="card"><h2>Heap mínimo e RSSI, 24 h</h2><div class="chart"><canvas id="cNet24"></canvas></div></section>
@@ -30,7 +30,7 @@
         <button id="btnLight">Light Sleep</button>
         <button id="btnDeep" class="danger">Deep Sleep</button>
       </div>
-      <p class="muted">Exige login no Admin. A porta (reed) também acorda o sistema.</p>
+      <p class="muted">Exige login no Admin. No Light Sleep, mexer num slot também acorda o sistema; no Deep Sleep, só o timer.</p>
     </section>
     <section class="card">
       <h2>Atualização OTA</h2>

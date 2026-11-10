@@ -4,7 +4,7 @@ const TASK_STATES = ["Rodando", "Pronta", "Bloqueada", "Suspensa", "Removida"];
 
 const cCpu = lineChart("cCpu", [{ label: "Core 0", data: [], borderColor: COLORS[0] }, { label: "Core 1", data: [], borderColor: COLORS[1] }], { max: 100 });
 const cHeap = lineChart("cHeap", [{ data: [], borderColor: COLORS[2] }], { beginAtZero: false });
-const cSens = lineChart("cSens", [{ label: "Porta aberta", data: [], borderColor: COLORS[1] }, { label: "Slot 1", data: [], borderColor: COLORS[0] }, { label: "Slot 2", data: [], borderColor: COLORS[2] }], { max: 100 });
+const cSens = lineChart("cSens", [{ label: "Destrancado", data: [], borderColor: COLORS[1] }, { label: "Slot 1", data: [], borderColor: COLORS[0] }, { label: "Slot 2", data: [], borderColor: COLORS[2] }], { max: 100 });
 const cNfc = lineChart("cNfc", [{ data: [], backgroundColor: COLORS[3] }], { type: "bar" });
 const cCpu24 = lineChart("cCpu24", [{ label: "Core 0", data: [], borderColor: COLORS[0] }, { label: "Core 1", data: [], borderColor: COLORS[1] }], { max: 100 });
 const cNet24 = lineChart("cNet24", [{ label: "Heap (KB)", data: [], borderColor: COLORS[2] }, { label: "RSSI (dBm)", data: [], borderColor: COLORS[3] }], { beginAtZero: false });
@@ -46,8 +46,8 @@ function render(p) {
   ]);
   const s = p.sensors;
   dl("sensors", [
-    ["Porta", s.door ? "Aberta" : "Fechada"], ["Slot 1", s.slot1 ? "Ocupado" : "Livre"], ["Slot 2", s.slot2 ? "Ocupado" : "Livre"],
-    ["Leituras NFC", s.nfcReads], ["PN532", s.nfcOk ? "OK" : "sem resposta"], ["Interrupções porta / S1 / S2", s.edges.join(" / ")],
+    ["Slot 1", s.slot1 ? "Ocupado" : "Livre"], ["Slot 2", s.slot2 ? "Ocupado" : "Livre"],
+    ["Leituras NFC", s.nfcReads], ["PN532", s.nfcOk ? "OK" : "sem resposta"], ["Interrupções S1 / S2", s.edges.join(" / ")],
   ]);
   $("prof").innerHTML = p.prof.map((f) => `<tr><td>${esc(f.n)}</td><td class="num">${f.avg}</td><td class="num">${f.min}</td><td class="num">${f.max}</td><td class="num">${f.last}</td><td class="num">${f.calls}</td></tr>`).join("");
   $("tasksTitle").textContent = `Tasks (${p.taskCount})`;

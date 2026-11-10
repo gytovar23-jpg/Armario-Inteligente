@@ -97,7 +97,6 @@ void settingsDefaults(Settings& s) {
   s.nfcPollMs = 200;
   s.unlockSec = 15;
   s.relockDelaySec = 3;
-  s.maxDoorOpenSec = 120;
   s.servoLockedDeg = 0;
   s.servoUnlockedDeg = 90;
   s.beepVolume = 100;
@@ -140,7 +139,6 @@ bool settingsSanitize(Settings& s) {
   within(s.nfcPollMs, 50, 2000, d.nfcPollMs);
   within(s.unlockSec, 3, 120, d.unlockSec);
   within(s.relockDelaySec, 1, 60, d.relockDelaySec);
-  within(s.maxDoorOpenSec, 10, 1800, d.maxDoorOpenSec);
   within(s.servoLockedDeg, 0, 180, d.servoLockedDeg);
   within(s.servoUnlockedDeg, 0, 180, d.servoUnlockedDeg);
   within(s.beepVolume, 0, 100, d.beepVolume);
@@ -164,7 +162,6 @@ bool settingsApplyJson(JsonObjectConst in, Settings& s, char* err, size_t errLen
   p.number("nfcPollMs", next.nfcPollMs, 50, 2000);
   p.number("unlockSec", next.unlockSec, 3, 120);
   p.number("relockDelaySec", next.relockDelaySec, 1, 60);
-  p.number("maxDoorOpenSec", next.maxDoorOpenSec, 10, 1800);
   p.number("servoLockedDeg", next.servoLockedDeg, 0, 180);
   p.number("servoUnlockedDeg", next.servoUnlockedDeg, 0, 180);
   p.number("beepVolume", next.beepVolume, 0, 100);
@@ -217,7 +214,6 @@ void settingsToJson(const Settings& s, JsonObject out, bool includeSecrets) {
   out["nfcPollMs"] = s.nfcPollMs;
   out["unlockSec"] = s.unlockSec;
   out["relockDelaySec"] = s.relockDelaySec;
-  out["maxDoorOpenSec"] = s.maxDoorOpenSec;
   out["servoLockedDeg"] = s.servoLockedDeg;
   out["servoUnlockedDeg"] = s.servoUnlockedDeg;
   out["beepVolume"] = s.beepVolume;
@@ -227,15 +223,15 @@ void settingsToJson(const Settings& s, JsonObject out, bool includeSecrets) {
   out["closeHour"] = s.closeHour;
   out["maxLoanHours"] = s.maxLoanHours;
   out["eventRetentionDays"] = s.eventRetentionDays;
-  out["wifiSsid"] = s.wifiSsid;
-  if (includeSecrets) out["wifiPass"] = s.wifiPass;
+  out["wifiSsid"] = static_cast<const char*>(s.wifiSsid);
+  if (includeSecrets) out["wifiPass"] = static_cast<const char*>(s.wifiPass);
   out["staticIp"] = s.staticIp;
-  out["ip"] = s.ip;
-  out["gateway"] = s.gateway;
-  out["subnet"] = s.subnet;
-  out["dns"] = s.dns;
-  out["timezone"] = s.timezone;
-  out["ntpServer"] = s.ntpServer;
+  out["ip"] = static_cast<const char*>(s.ip);
+  out["gateway"] = static_cast<const char*>(s.gateway);
+  out["subnet"] = static_cast<const char*>(s.subnet);
+  out["dns"] = static_cast<const char*>(s.dns);
+  out["timezone"] = static_cast<const char*>(s.timezone);
+  out["ntpServer"] = static_cast<const char*>(s.ntpServer);
   out["cpuMhz"] = s.cpuMhz;
   out["modemSleep"] = s.modemSleep;
   out["autoEco"] = s.autoEco;
@@ -243,7 +239,7 @@ void settingsToJson(const Settings& s, JsonObject out, bool includeSecrets) {
   JsonArray slots = out["slots"].to<JsonArray>();
   for (size_t i = 0; i < SLOT_COUNT; i++) {
     JsonObject slot = slots.add<JsonObject>();
-    slot["asset"] = s.slotAsset[i];
+    slot["asset"] = static_cast<const char*>(s.slotAsset[i]);
     slot["maintenance"] = s.slotMaintenance[i];
   }
 }

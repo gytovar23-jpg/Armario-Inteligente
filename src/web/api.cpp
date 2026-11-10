@@ -175,7 +175,7 @@ void routeHistory() {
     spec.limit = 1500;
     web::sendRingStream(req, spec, [](const void* rec, char* out, size_t cap) -> size_t {
       const auto* m = static_cast<const MinuteSample*>(rec);
-      return snprintf(out, cap, "[%lu,%u,%u,%u,%u,%u,%u,%d,%u,%u]", (unsigned long)m->ts, m->flags, m->doorOpenPct, m->slot1Pct,
+      return snprintf(out, cap, "[%lu,%u,%u,%u,%u,%u,%u,%d,%u,%u]", (unsigned long)m->ts, m->flags, m->unlockedPct, m->slot1Pct,
                       m->slot2Pct, m->cpu0Pct, m->cpu1Pct, m->rssi, m->heapFreeKb, m->nfcReads);
     });
   });
@@ -322,7 +322,7 @@ void routeUsers() {
     JsonVariant root = response->getRoot();
     root["active"] = s.state == LockerState::Enroll;
     root["captureId"] = s.enrollCaptureId;
-    root["uid"] = s.lastUid;
+    root["uid"] = static_cast<const char*>(s.lastUid);
     response->setLength();
     req->send(response);
   });
@@ -364,9 +364,9 @@ void routeControl() {
 
     if (strcmp(target, "servo") == 0) {
       // A tranca só se move em repouso: um teste não pode abrir uma sessão real.
-      if (s.state != LockerState::Idle || s.doorOpen) {
+      if (s.state != LockerState::Idle) {
         root["ok"] = false;
-        root["detail"] = "disponivel apenas em repouso com a porta fechada";
+        root["detail"] = "disponivel apenas em repouso";
       } else {
         shared::sendActuator(ActuatorCmd::TestServo);
         root["detail"] = "destrava e retorna em 1,5 s";
@@ -387,10 +387,8 @@ void routeControl() {
     } else if (strcmp(target, "oled") == 0) {
       root["ok"] = display::ready();
     } else if (strcmp(target, "sensors") == 0) {
-      root["door"] = s.doorOpen;
       root["slot1"] = s.slotOccupied[0];
       root["slot2"] = s.slotOccupied[1];
-      root["doorEdges"] = sensors::edgeCount(SensorId::Door);
       root["slot1Edges"] = sensors::edgeCount(SensorId::Slot1);
       root["slot2Edges"] = sensors::edgeCount(SensorId::Slot2);
     } else if (strcmp(target, "flash") == 0) {
@@ -493,6 +491,9 @@ void registerApi(AsyncWebServer& server) {
   publicGet("/api/state", [](AsyncWebServerRequest* req) {
     auto* response = new AsyncJsonResponse();
     stateToJson(response->getRoot().to<JsonObject>());
+    // DIAGNOSTICO TEMPORARIO
+    Serial.printf("[DIAG] /api/state %u bytes, heap %u\n", (unsigned)measureJson(response->getRoot()),
+                  (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT));
     response->setLength();
     req->send(response);
   });

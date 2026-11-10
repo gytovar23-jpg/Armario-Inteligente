@@ -25,7 +25,7 @@ void test_minute_averages_and_keeps_worst_heap() {
   m.add({false, true, true, 50, 60, 120, -70});
   m.add({false, true, false, 10, 20, 90, -60});
   const MinuteResult r = m.finish();
-  TEST_ASSERT_EQUAL_UINT8(25, r.doorOpenPct);
+  TEST_ASSERT_EQUAL_UINT8(25, r.unlockedPct);
   TEST_ASSERT_EQUAL_UINT8(100, r.slot1Pct);
   TEST_ASSERT_EQUAL_UINT8(25, r.slot2Pct);
   TEST_ASSERT_EQUAL_UINT8(25, r.cpu0Pct);
@@ -41,13 +41,13 @@ void test_minute_resets_after_finish() {
   TEST_ASSERT_TRUE(m.empty());
   m.add({false, false, false, 10, 10, 200, -80});
   const MinuteResult r = m.finish();
-  TEST_ASSERT_EQUAL_UINT8(0, r.doorOpenPct);
+  TEST_ASSERT_EQUAL_UINT8(0, r.unlockedPct);
   TEST_ASSERT_EQUAL_UINT16(200, r.heapMinKb);
 }
 
 void test_empty_minute_is_safe() {
   MinuteAggregator m;
-  TEST_ASSERT_EQUAL_UINT8(0, m.finish().doorOpenPct);
+  TEST_ASSERT_EQUAL_UINT8(0, m.finish().unlockedPct);
 }
 
 void test_hour_average_and_reset() {

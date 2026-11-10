@@ -14,9 +14,8 @@ struct Settings {
   uint16_t nfcPollMs;
 
   // Operação do armário
-  uint16_t unlockSec;      // Tempo para abrir a porta depois de destrancar.
-  uint16_t relockDelaySec; // Atraso entre fechar a porta e trancar.
-  uint16_t maxDoorOpenSec;
+  uint16_t unlockSec;      // Duração da sessão aberta pelo cartão.
+  uint16_t relockDelaySec; // Prazo para trancar depois de cada mudança de slot.
   uint8_t servoLockedDeg;
   uint8_t servoUnlockedDeg;
   uint8_t beepVolume;   // 0–100: duty do PWM aplicado ao buzzer ativo.
@@ -52,7 +51,7 @@ struct Settings {
 };
 
 constexpr uint32_t SETTINGS_MAGIC = 0x41524D31;  // "ARM1"
-constexpr uint16_t SETTINGS_SCHEMA = 1;
+constexpr uint16_t SETTINGS_SCHEMA = 2;  // 2: sem sensor de porta (saiu maxDoorOpenSec).
 
 void settingsDefaults(Settings& s);
 

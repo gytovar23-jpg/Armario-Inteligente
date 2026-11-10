@@ -17,8 +17,8 @@ bool auxOn = false;
 namespace outputs {
 
 void begin() {
-  // GPIO 14 emite pulsos durante o boot da ROM: um clique curto ao ligar é esperado.
-  rtc_gpio_deinit(GPIO_NUM_14);
+  // Devolve o pino ao GPIO digital caso o deep sleep o tenha deixado no domínio RTC.
+  rtc_gpio_deinit(static_cast<gpio_num_t>(PIN_BUZZER));
   pinMode(PIN_LED_GREEN, OUTPUT);
   pinMode(PIN_LED_RED, OUTPUT);
   digitalWrite(PIN_LED_GREEN, LOW);
@@ -52,10 +52,12 @@ bool auxState() { return auxOn; }
 void prepareForDeepSleep() {
   ledcWrite(PIN_BUZZER, 0);
   ledcDetach(PIN_BUZZER);
-  rtc_gpio_init(GPIO_NUM_14);
-  rtc_gpio_set_direction(GPIO_NUM_14, RTC_GPIO_MODE_DISABLED);
-  rtc_gpio_pulldown_en(GPIO_NUM_14);
-  rtc_gpio_pullup_dis(GPIO_NUM_14);
+  // O pull-down RTC segura a base do BC547 em baixo: o buzzer fica mudo dormindo.
+  const gpio_num_t buzzer = static_cast<gpio_num_t>(PIN_BUZZER);
+  rtc_gpio_init(buzzer);
+  rtc_gpio_set_direction(buzzer, RTC_GPIO_MODE_DISABLED);
+  rtc_gpio_pulldown_en(buzzer);
+  rtc_gpio_pullup_dis(buzzer);
 }
 
 }  // namespace outputs

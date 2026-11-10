@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 struct RawSample {
-  bool doorOpen;
+  bool unlocked;  // Tranca solta: sem sensor de porta, é o que indica armário aberto.
   bool slot1;
   bool slot2;
   uint8_t cpu0;
@@ -13,7 +13,7 @@ struct RawSample {
 };
 
 struct MinuteResult {
-  uint8_t doorOpenPct;
+  uint8_t unlockedPct;
   uint8_t slot1Pct;
   uint8_t slot2Pct;
   uint8_t cpu0Pct;
@@ -30,7 +30,7 @@ class MinuteAggregator {
 
  private:
   uint32_t samples_ = 0;
-  uint32_t door_ = 0;
+  uint32_t unlocked_ = 0;
   uint32_t slot1_ = 0;
   uint32_t slot2_ = 0;
   uint32_t cpu0_ = 0;

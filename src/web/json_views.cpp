@@ -20,12 +20,12 @@
 namespace web {
 
 const char* stateName(uint8_t state) {
-  static const char* const NAMES[] = {"IDLE", "AUTHORIZED", "DOOR_OPEN", "CLOSING", "ALARM", "ENROLL"};
+  static const char* const NAMES[] = {"IDLE", "OPEN", "ALARM", "ENROLL"};
   return NAMES[state];
 }
 
 const char* alarmName(uint8_t alarm) {
-  static const char* const NAMES[] = {"", "PORTA_ABERTA", "INTRUSAO", "VIOLACAO"};
+  static const char* const NAMES[] = {"", "VIOLACAO"};
   return NAMES[alarm];
 }
 
@@ -42,9 +42,10 @@ void stateToJson(JsonObject out) {
   out["state"] = stateName(static_cast<uint8_t>(s.state));
   out["alarm"] = alarmName(static_cast<uint8_t>(s.alarm));
   out["silenced"] = s.alarmSilenced;
-  out["doorOpen"] = s.doorOpen;
   out["locked"] = s.locked;
-  out["user"] = s.sessionUser;
+  // ArduinoJson 7 guarda um const char[N] como literal: só o ponteiro, com N-1 bytes,
+  // lixo após o \0 incluso. O cast faz copiar até o \0, e a cópia local pode sair de escopo.
+  out["user"] = static_cast<const char*>(s.sessionUser);
   out["timeSynced"] = timebase::synced();
   uint8_t flags = 0;
   out["now"] = timebase::now(&flags);
@@ -54,12 +55,12 @@ void stateToJson(JsonObject out) {
     JsonObject slot = slots.add<JsonObject>();
     slot["id"] = i + 1;
     slot["occupied"] = s.slotOccupied[i];
-    slot["asset"] = cfg.slotAsset[i];
+    slot["asset"] = static_cast<const char*>(cfg.slotAsset[i]);
     slot["maintenance"] = cfg.slotMaintenance[i];
     slot["overdue"] = s.overdue[i];
     if (s.loans[i].active) {
       JsonObject loan = slot["loan"].to<JsonObject>();
-      loan["user"] = s.loans[i].userName;
+      loan["user"] = static_cast<const char*>(s.loans[i].userName);
       loan["since"] = s.loans[i].since;
       loan["synced"] = (s.loans[i].flags & REC_TIME_SYNCED) != 0;
     }
@@ -195,13 +196,11 @@ void perfToJson(JsonObject out) {
   }
 
   JsonObject sensorsOut = out["sensors"].to<JsonObject>();
-  sensorsOut["door"] = s.doorOpen;
   sensorsOut["slot1"] = s.slotOccupied[0];
   sensorsOut["slot2"] = s.slotOccupied[1];
   sensorsOut["nfcReads"] = shared::nfcReads.load();
   sensorsOut["nfcOk"] = nfc::ready();
   JsonArray edges = sensorsOut["edges"].to<JsonArray>();
-  edges.add(sensors::edgeCount(SensorId::Door));
   edges.add(sensors::edgeCount(SensorId::Slot1));
   edges.add(sensors::edgeCount(SensorId::Slot2));
 

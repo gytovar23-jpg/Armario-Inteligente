@@ -24,10 +24,10 @@
 | Mais de uma task, com divisão justificada | Implementado | `src/tasks/tasks.cpp`, `docs/ARQUITETURA.md` |
 | Interrupções de hardware | Implementado | `onEdge` em `sensors.cpp`, `onSampleTick` em `task_sampler.cpp` |
 | Light e Deep Sleep pela web | Implementado | `src/power/power.cpp` |
-| ≥2 sensores de entrada | Implementado | Reed, 2 microswitches, NFC |
+| ≥2 sensores de entrada | Implementado | 2 microswitches, NFC |
 | ≥2 atuadores (sem LED/buzzer) | **Pendente de hardware**: o código do relé existe, falta o componente | `PIN_AUX_ACTUATOR`, `outputs::setAux` |
 | Pronto para GitHub público | Implementado; sem credenciais reais, falta criar o repositório | `.gitignore`, `README.md` |
 
 ## Fora da checklist do prompt, também entregues
 
-Modo diagnóstico (`/api/diag`), testes unitários (59), `docs/ARQUITETURA.md`, `docs/TESTES.md`, backup e restauração, watchdog nas tasks críticas, rollback de OTA.
+Modo diagnóstico (`/api/diag`), testes unitários (57), `docs/ARQUITETURA.md`, `docs/TESTES.md`, backup e restauração, watchdog nas tasks críticas, rollback de OTA.

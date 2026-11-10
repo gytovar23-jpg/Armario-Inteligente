@@ -30,7 +30,7 @@ void postMinute(const MinuteResult& r, uint16_t nfcReadsInMinute) {
   MinuteSample& m = msg.minute;
   m.flags = 0;
   m.ts = timebase::now(&m.flags);
-  m.doorOpenPct = r.doorOpenPct;
+  m.unlockedPct = r.unlockedPct;
   m.slot1Pct = r.slot1Pct;
   m.slot2Pct = r.slot2Pct;
   m.cpu0Pct = r.cpu0Pct;
@@ -92,7 +92,7 @@ void taskSampler(void*) {
 
     const LockerSnapshot s = shared::read();
     RawSample sample{};
-    sample.doorOpen = s.doorOpen;
+    sample.unlocked = !s.locked;
     sample.slot1 = s.slotOccupied[0];
     sample.slot2 = s.slotOccupied[1];
     sample.cpu0 = shared::cpuPct0.load();

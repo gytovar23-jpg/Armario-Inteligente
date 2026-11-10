@@ -190,7 +190,7 @@ $("diag").onclick = async (ev) => {
 // ---- Configurações -------------------------------------------------------------
 const FIELDS = {
   fFreq: [["sensorSampleMs", "Amostragem dos sensores (ms)", "number"], ["nfcPollMs", "Leitura NFC (ms)", "number"]],
-  fOp: [["unlockSec", "Tempo para abrir a porta (s)", "number"], ["relockDelaySec", "Atraso para trancar (s)", "number"], ["maxDoorOpenSec", "Porta aberta, máximo (s)", "number"],
+  fOp: [["unlockSec", "Tempo destrancado após o cartão (s)", "number"], ["relockDelaySec", "Trancar após mexer num slot (s)", "number"],
     ["servoLockedDeg", "Ângulo trancado", "number"], ["servoUnlockedDeg", "Ângulo destrancado", "number"], ["beepVolume", "Volume do bipe (%)", "number"],
     ["beepPattern", "Duração do bipe (0 curto, 1 normal, 2 longo)", "number"], ["hoursEnforced", "Aplicar horário de funcionamento", "checkbox"],
     ["openHour", "Abre às (h)", "number"], ["closeHour", "Fecha às (h)", "number"], ["maxLoanHours", "Prazo máximo do empréstimo (h)", "number"], ["eventRetentionDays", "Retenção de eventos (dias)", "number"]],
@@ -284,7 +284,7 @@ function startApp() {
   connectSocket((msg) => {
     if (msg.t !== "state") return;
     currentState = msg;
-    $("controlState").textContent = `Estado: ${msg.state}. Porta ${msg.doorOpen ? "aberta" : "fechada"}, ${msg.locked ? "trancada" : "destrancada"}.`;
+    $("controlState").textContent = `Estado: ${msg.state}. Tranca ${msg.locked ? "fechada" : "aberta"}.`;
   });
 }
 

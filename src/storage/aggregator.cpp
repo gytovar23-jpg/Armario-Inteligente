@@ -6,7 +6,7 @@ uint8_t percent(uint32_t part, uint32_t total) { return (part * 100 + total / 2)
 
 void MinuteAggregator::add(const RawSample& s) {
   samples_++;
-  door_ += s.doorOpen;
+  unlocked_ += s.unlocked;
   slot1_ += s.slot1;
   slot2_ += s.slot2;
   cpu0_ += s.cpu0;
@@ -18,7 +18,7 @@ void MinuteAggregator::add(const RawSample& s) {
 MinuteResult MinuteAggregator::finish() {
   MinuteResult r{};
   if (samples_ > 0) {
-    r.doorOpenPct = percent(door_, samples_);
+    r.unlockedPct = percent(unlocked_, samples_);
     r.slot1Pct = percent(slot1_, samples_);
     r.slot2Pct = percent(slot2_, samples_);
     r.cpu0Pct = (cpu0_ + samples_ / 2) / samples_;

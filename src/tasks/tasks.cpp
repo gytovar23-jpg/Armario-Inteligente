@@ -24,12 +24,10 @@ struct TaskSpec {
   void* arg;
 };
 
-bool wokenFlag;
-
 void createAll() {
   const TaskSpec specs[] = {
       // Access acima de NFC: decidir sobre um evento já recebido vem antes de buscar outro.
-      {taskAccess, "taskAccess", 5120, 6, 1, &wokenFlag},
+      {taskAccess, "taskAccess", 5120, 6, 1, nullptr},
       // NFC dorme em vTaskDelay enquanto espera o RF, então não prende o core.
       {taskNFC, "taskNFC", 4096, 5, 1, nullptr},
       // Precisa de ciclo estável de 10 ms para os padrões de bipe, mas só faz GPIO.
@@ -59,14 +57,13 @@ void createAll() {
 
 namespace tasks {
 
-void startAll(bool wokenByDoor) {
+void startAll() {
   esp_task_wdt_config_t wdt{};
   wdt.timeout_ms = WDT_TIMEOUT_S * 1000;
   wdt.idle_core_mask = 1 << 0;  // Mantém o idle do core 0, como o Arduino configura.
   wdt.trigger_panic = true;     // Travou: reinicia, e o motivo aparece na Performance.
   esp_task_wdt_reconfigure(&wdt);
 
-  wokenFlag = wokenByDoor;
   createAll();
 }
 

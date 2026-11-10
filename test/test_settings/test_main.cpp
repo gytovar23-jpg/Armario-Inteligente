@@ -37,7 +37,7 @@ void test_out_of_range_is_rejected_and_names_the_field() {
 }
 
 void test_rejection_is_all_or_nothing() {
-  TEST_ASSERT_FALSE(apply("{\"unlockSec\":20,\"maxDoorOpenSec\":1}"));
+  TEST_ASSERT_FALSE(apply("{\"unlockSec\":20,\"relockDelaySec\":0}"));
   TEST_ASSERT_EQUAL_UINT16(15, s.unlockSec);
 }
 

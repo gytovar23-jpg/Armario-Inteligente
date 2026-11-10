@@ -1,4 +1,5 @@
 [
+  { "versao": "0.10.0", "data": "2026-11-09", "mudancas": ["Pinagem nova, validada em bancada", "Sem sensor de porta: sessão por tempo após o cartão, tranca 3 s após a última mudança de slot", "Light Sleep acorda por mudança de slot; Deep Sleep só por timer", "Configurações voltam ao padrão na primeira inicialização desta versão"] },
   { "versao": "0.9.0", "data": "2026-11-03", "mudancas": ["Dashboard simplificado: notebooks, quem retirou, horários e devoluções ao vivo", "Página Estatísticas (só administrador): médias por dia, uso por semana, quem mais usa e tempo por pessoa"] },
   { "versao": "0.8.0", "data": "2026-10-30", "mudancas": ["Testes unitários da lógica pura", "README, arquitetura, roteiro de testes e checklist do TDE", "Revisão final: correções de concorrência e de atribuição de empréstimos"] },
   { "versao": "0.7.0", "data": "2026-10-30", "mudancas": ["Uso de CPU por run-time stats do FreeRTOS", "Métricas de memória, flash e tasks", "Light Sleep, Deep Sleep e modo econômico", "OTA com validação e rollback"] },

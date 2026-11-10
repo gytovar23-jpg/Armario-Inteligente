@@ -17,30 +17,15 @@ void StateMachine::engage(ActionList& out) {
   out.push({ActionType::EngageLock});
 }
 
-void StateMachine::begin(uint32_t nowMs, bool doorOpen, const bool occupied[SLOT_COUNT], bool wokenByDoor, ActionList& out) {
+void StateMachine::begin(uint32_t nowMs, const bool occupied[SLOT_COUNT], ActionList& out) {
   now_ = nowMs;
-  doorOpen_ = doorOpen;
   for (uint8_t i = 0; i < SLOT_COUNT; i++) {
     occupied_[i] = occupied[i];
     initial_[i] = occupied[i];
   }
+  // Sem sensor de porta não há sessão a retomar depois de um reset: começa trancado.
   engage(out);
-
-  if (!doorOpen) {
-    state_ = LockerState::Idle;
-    return;
-  }
-  if (wokenByDoor) {
-    // Dormindo, a tranca estava fechada: acordar pela porta só pode ser arrombamento.
-    enterAlarm(AlarmReason::Intrusion, out);
-    return;
-  }
-  // Reset no meio de uma sessão: exige apenas o fechamento normal, sem alarme falso.
-  state_ = LockerState::DoorOpen;
-  user_ = USER_NONE;
-  deadline_ = now_ + cfg_.maxOpenMs;
-  note(FsmNote::BootWithDoorOpen, out);
-  out.push({ActionType::LightOn});
+  state_ = LockerState::Idle;
 }
 
 void StateMachine::handle(const FsmEvent& ev, ActionList& out) {
@@ -54,14 +39,6 @@ void StateMachine::handle(const FsmEvent& ev, ActionList& out) {
       break;
     case FsmInput::CardDenied:
       onCardDenied(out);
-      break;
-    case FsmInput::DoorOpened:
-      doorOpen_ = true;
-      onDoorOpened(out);
-      break;
-    case FsmInput::DoorClosed:
-      doorOpen_ = false;
-      onDoorClosed(out);
       break;
     case FsmInput::SlotOccupied:
       onSlot(ev.slot, true, out);
@@ -101,16 +78,7 @@ void StateMachine::handle(const FsmEvent& ev, ActionList& out) {
 void StateMachine::onTick(ActionList& out) {
   if (!reached(now_, deadline_)) return;
   switch (state_) {
-    case LockerState::Authorized:
-      engage(out);
-      state_ = LockerState::Idle;
-      note(FsmNote::UnlockTimedOut, out);
-      user_ = USER_NONE;
-      break;
-    case LockerState::DoorOpen:
-      enterAlarm(AlarmReason::DoorTimeout, out);
-      break;
-    case LockerState::Closing:
+    case LockerState::Open:
       finishSession(out);
       break;
     case LockerState::Enroll:
@@ -120,50 +88,6 @@ void StateMachine::onTick(ActionList& out) {
     default:
       break;
   }
-}
-
-void StateMachine::onDoorOpened(ActionList& out) {
-  switch (state_) {
-    case LockerState::Authorized:
-      startSession(out);
-      break;
-    case LockerState::Closing:
-      // Reabriu antes de trancar: é a mesma sessão, a fotografia inicial continua valendo.
-      state_ = LockerState::DoorOpen;
-      deadline_ = now_ + cfg_.maxOpenMs;
-      break;
-    case LockerState::Idle:
-    case LockerState::Enroll:
-      enterAlarm(AlarmReason::Intrusion, out);
-      break;
-    default:
-      break;
-  }
-}
-
-void StateMachine::onDoorClosed(ActionList& out) {
-  if (state_ == LockerState::DoorOpen) {
-    state_ = LockerState::Closing;
-    deadline_ = now_ + cfg_.relockMs;
-    return;
-  }
-  if (state_ != LockerState::Alarm) return;
-
-  if (alarm_ == AlarmReason::DoorTimeout) {
-    // A causa sumiu com o fechamento: não exige ação do administrador.
-    if (!silenced_) out.push({ActionType::AlarmOff});
-    alarm_ = AlarmReason::None;
-    silenced_ = false;
-    state_ = LockerState::Closing;
-    deadline_ = now_ + cfg_.relockMs;
-  } else if (silenced_) {
-    leaveAlarmToIdle(out);
-  }
-}
-
-bool StateMachine::sessionActive() const {
-  return state_ == LockerState::DoorOpen || state_ == LockerState::Closing ||
-         (state_ == LockerState::Alarm && alarm_ == AlarmReason::DoorTimeout);
 }
 
 void StateMachine::onSlot(uint8_t slot, bool occupied, ActionList& out) {
@@ -177,9 +101,10 @@ void StateMachine::onSlot(uint8_t slot, bool occupied, ActionList& out) {
     out.push(a);
     return;
   }
-  // Closing conta como sessão: o microswitch pode assentar logo depois de o reed
-  // fechar, e isso não é violação enquanto a tranca ainda está aberta.
-  if (sessionActive()) return;
+  if (state_ == LockerState::Open) {
+    deadline_ = now_ + cfg_.relockMs;
+    return;
+  }
 
   FsmAction a{ActionType::SlotViolation};
   a.slot = slot;
@@ -191,19 +116,9 @@ void StateMachine::onSlot(uint8_t slot, bool occupied, ActionList& out) {
 void StateMachine::onCardGranted(const FsmEvent& ev, ActionList& out) {
   switch (state_) {
     case LockerState::Idle:
-    case LockerState::Authorized:
+    case LockerState::Open:
       out.push({ActionType::FeedbackGranted});
-      startAuthorized(ev.userId, out);
-      break;
-    case LockerState::Closing:
-      // Fila de usuários: fecha a sessão anterior antes de abrir a do próximo.
-      commitSession(out);
-      out.push({ActionType::FeedbackGranted});
-      startAuthorized(ev.userId, out);
-      break;
-    case LockerState::DoorOpen:
-      if (user_ == USER_NONE) user_ = ev.userId;  // Sessão herdada de um reset.
-      out.push({ActionType::FeedbackGranted});
+      openFor(ev.userId, out);
       break;
     case LockerState::Alarm:
       if (ev.admin) {
@@ -223,45 +138,47 @@ void StateMachine::onCardDenied(ActionList& out) {
 
 void StateMachine::onSilence(ActionList& out) {
   if (state_ != LockerState::Alarm) return;
-  if (!silenced_) {
-    silenced_ = true;
-    out.push({ActionType::AlarmOff});
-  }
-  if (!doorOpen_ && alarm_ != AlarmReason::DoorTimeout) leaveAlarmToIdle(out);
+  out.push({ActionType::AlarmOff});
+  leaveAlarmToIdle(out);
 }
 
 void StateMachine::onAdminUnlock(const FsmEvent& ev, ActionList& out) {
-  if (state_ == LockerState::Idle || state_ == LockerState::Authorized) {
-    startAuthorized(ev.userId, out);
+  if (state_ == LockerState::Idle || state_ == LockerState::Open) {
+    openFor(ev.userId, out);
   } else {
     note(FsmNote::Refused, out);
   }
 }
 
 void StateMachine::onAdminLock(ActionList& out) {
-  if (state_ == LockerState::Authorized) {
-    engage(out);
-    state_ = LockerState::Idle;
-    user_ = USER_NONE;
-  } else if (state_ == LockerState::Closing) {
+  if (state_ == LockerState::Open) {
     finishSession(out);
   } else {
     note(FsmNote::Refused, out);
   }
 }
 
-void StateMachine::startAuthorized(uint16_t user, ActionList& out) {
-  user_ = user;
-  state_ = LockerState::Authorized;
+void StateMachine::openFor(uint16_t user, ActionList& out) {
+  if (state_ != LockerState::Open) {
+    startSession(user, out);
+    return;
+  }
+  if (user != user_) {
+    // Fila de usuários: fecha o saldo do anterior antes de abrir o do próximo.
+    commitSession(out);
+    user_ = user;
+    note(FsmNote::SessionStarted, out);
+  }
   deadline_ = now_ + cfg_.unlockMs;
-  locked_ = false;
-  out.push({ActionType::ReleaseLock});
 }
 
-void StateMachine::startSession(ActionList& out) {
-  state_ = LockerState::DoorOpen;
-  deadline_ = now_ + cfg_.maxOpenMs;
+void StateMachine::startSession(uint16_t user, ActionList& out) {
+  user_ = user;
+  state_ = LockerState::Open;
+  deadline_ = now_ + cfg_.unlockMs;
+  locked_ = false;
   for (uint8_t i = 0; i < SLOT_COUNT; i++) initial_[i] = occupied_[i];
+  out.push({ActionType::ReleaseLock});
   note(FsmNote::SessionStarted, out);
   out.push({ActionType::LightOn});
 }
@@ -284,6 +201,7 @@ void StateMachine::finishSession(ActionList& out) {
   commitSession(out);
   engage(out);
   out.push({ActionType::LightOff});
+  note(FsmNote::SessionEnded, out);
   state_ = LockerState::Idle;
   user_ = USER_NONE;
 }
@@ -291,17 +209,12 @@ void StateMachine::finishSession(ActionList& out) {
 void StateMachine::enterAlarm(AlarmReason reason, ActionList& out) {
   state_ = LockerState::Alarm;
   alarm_ = reason;
-  silenced_ = false;
   out.push({ActionType::AlarmOn});
-  if (reason == AlarmReason::DoorTimeout) note(FsmNote::DoorLeftOpen, out);
-  if (reason == AlarmReason::Intrusion) note(FsmNote::Intrusion, out);
 }
 
 void StateMachine::leaveAlarmToIdle(ActionList& out) {
   engage(out);
-  out.push({ActionType::LightOff});
   state_ = LockerState::Idle;
   alarm_ = AlarmReason::None;
-  silenced_ = false;
   user_ = USER_NONE;
 }

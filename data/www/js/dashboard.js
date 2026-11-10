@@ -1,9 +1,7 @@
 // Tela simples para quem usa o armário: quem está com cada notebook e o que já voltou.
 const BANNER = {
-  AUTHORIZED: ["ok", "Cartão aceito. Pode abrir a porta."],
-  DOOR_OPEN: ["warn", "Porta aberta. Ao fechar, a retirada ou devolução é registrada."],
-  CLOSING: ["warn", "Trancando..."],
-  ALARM: ["bad", "Alarme! Feche a porta do armário."],
+  OPEN: ["ok", "Armário destrancado. A retirada ou devolução é registrada quando ele trancar."],
+  ALARM: ["bad", "Alarme! Um slot mudou com o armário trancado."],
   ENROLL: ["warn", "Cadastro de cartão em andamento."],
 };
 

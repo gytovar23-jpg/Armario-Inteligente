@@ -39,7 +39,6 @@ struct LockerSnapshot {
   LockerState state;
   AlarmReason alarm;
   bool alarmSilenced;
-  bool doorOpen;
   bool locked;
   bool slotOccupied[SLOT_COUNT];
   ActiveLoan loans[SLOT_COUNT];

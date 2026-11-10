@@ -6,7 +6,7 @@ namespace tasks {
 
 // Cria todas as tasks fixadas em seus cores. Falha de criação é fatal: sem as
 // tasks o armário não opera com segurança.
-void startAll(bool wokenByDoor);
+void startAll();
 
 // Registra a task atual no watchdog com o timeout do projeto.
 void watchThisTask();

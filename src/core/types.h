@@ -24,7 +24,7 @@ enum class EventType : uint8_t {
   Return = 1,     // Devolução
   Denied = 2,     // Cartão recusado
   Violation = 3,  // Slot mudou sem sessão
-  Intrusion = 4,  // Porta abriu sem autorização
+  Intrusion = 4,  // Só em registros antigos: exigia sensor de porta.
 };
 
 constexpr uint16_t USER_NONE = 0xFFFF;
@@ -46,7 +46,7 @@ static_assert(sizeof(EventRecord) == 52, "tamanho fixo de registro em flash");
 struct __attribute__((packed)) MinuteSample {
   uint32_t ts;
   uint8_t flags;
-  uint8_t doorOpenPct;
+  uint8_t unlockedPct;  // % do minuto com a tranca solta.
   uint8_t slot1Pct;  // % do minuto com slot ocupado.
   uint8_t slot2Pct;
   uint8_t cpu0Pct;

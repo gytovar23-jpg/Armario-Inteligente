@@ -44,10 +44,10 @@ int indexOfUid(const char* uid) {
 
 void writeUser(const User& u, JsonObject o) {
   o["id"] = u.id;
-  o["name"] = u.name;
-  o["ra"] = u.ra;
-  o["email"] = u.email;
-  o["uid"] = u.uid;
+  o["name"] = static_cast<const char*>(u.name);
+  o["ra"] = static_cast<const char*>(u.ra);
+  o["email"] = static_cast<const char*>(u.email);
+  o["uid"] = static_cast<const char*>(u.uid);
   o["active"] = u.active;
   o["admin"] = u.admin;
 }

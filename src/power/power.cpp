@@ -4,7 +4,6 @@
 
 #include <Arduino.h>
 #include <driver/gpio.h>
-#include <driver/rtc_io.h>
 #include <esp_sleep.h>
 
 #include <atomic>
@@ -47,23 +46,29 @@ void prepare(const SleepRequest& r, bool deep) {
   Serial.flush();
 }
 
+const gpio_num_t SLOT_PINS[] = {static_cast<gpio_num_t>(PIN_SLOT_1), static_cast<gpio_num_t>(PIN_SLOT_2)};
+
 void enterLightSleep(const SleepRequest& r) {
   prepare(r, false);
 
-  sensors::suspendDoorInterrupt();
+  sensors::suspendInterrupts();
   esp_sleep_enable_timer_wakeup(uint64_t(r.seconds) * 1000000);
-  gpio_wakeup_enable(static_cast<gpio_num_t>(PIN_REED_DOOR), GPIO_INTR_HIGH_LEVEL);
+  // O wake-up por GPIO é por nível: acorda no nível oposto ao atual, ou seja,
+  // quando qualquer slot mudar. Mexer num slot dormindo vira violação pela FSM.
+  for (gpio_num_t pin : SLOT_PINS) {
+    gpio_wakeup_enable(pin, gpio_get_level(pin) ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
+  }
   esp_sleep_enable_gpio_wakeup();
 
   esp_light_sleep_start();  // RAM e tasks preservadas; retoma nesta linha.
 
   const esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
-  gpio_wakeup_disable(static_cast<gpio_num_t>(PIN_REED_DOOR));
+  for (gpio_num_t pin : SLOT_PINS) gpio_wakeup_disable(pin);
   esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
-  sensors::resumeDoorInterrupt();
-  sensors::resync();  // Porta aberta durante o sono vira intrusão pela FSM.
+  sensors::resumeInterrupts();
+  sensors::resync();
 
-  const char* text = cause == ESP_SLEEP_WAKEUP_TIMER ? "timer" : cause == ESP_SLEEP_WAKEUP_GPIO ? "reed (porta)" : "outro";
+  const char* text = cause == ESP_SLEEP_WAKEUP_TIMER ? "timer" : cause == ESP_SLEEP_WAKEUP_GPIO ? "slot" : "outro";
   setWake(text);
   wifimgr::resume();
   LOG_INFO("power", "Acordou do light sleep por %s", text);
@@ -72,14 +77,10 @@ void enterLightSleep(const SleepRequest& r) {
 void enterDeepSleep(const SleepRequest& r) {
   prepare(r, true);
 
-  // Em deep sleep só os periféricos RTC continuam: o pull-up digital some, e o
-  // reed sem pull-up acordaria o sistema por ruído.
-  sensors::suspendDoorInterrupt();
-  rtc_gpio_init(GPIO_NUM_25);
-  rtc_gpio_set_direction(GPIO_NUM_25, RTC_GPIO_MODE_INPUT_ONLY);
-  rtc_gpio_pullup_en(GPIO_NUM_25);
-  rtc_gpio_pulldown_dis(GPIO_NUM_25);
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 1);  // Porta aberta = nível alto.
+  // Só o timer acorda: os slots (GPIO 16/17) não são RTC GPIO e não servem de
+  // fonte de wake-up em deep sleep. Limitação conhecida: um slot mexido durante
+  // o deep sleep não vira violação, porque a FSM parte do estado lido no boot.
+  sensors::suspendInterrupts();
   esp_sleep_enable_timer_wakeup(uint64_t(r.seconds) * 1000000);
 
   esp_deep_sleep_start();  // Não retorna: ao acordar o firmware reinicia.
@@ -106,8 +107,8 @@ void begin() {
 
 bool request(Request kind, uint32_t seconds, char* reason, size_t reasonLen) {
   const LockerSnapshot s = shared::read();
-  if (s.state != LockerState::Idle || s.doorOpen) {
-    strlcpy(reason, "armario em uso ou porta aberta", reasonLen);
+  if (s.state != LockerState::Idle) {
+    strlcpy(reason, "armario em uso", reasonLen);
     return false;
   }
   if (web::otaInProgress()) {
